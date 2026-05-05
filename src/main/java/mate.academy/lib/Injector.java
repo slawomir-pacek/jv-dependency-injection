@@ -7,22 +7,19 @@ import java.util.Map;
 public class Injector {
     private static final Injector injector = new Injector();
 
-    // mapowanie interfejs -> implementacja
-    private Map<Class<?>, Class<?>> interfaceImplementationMap = new HashMap<>();
+    private final Map<Class<?>, Class<?>> interfaceImplementationMap = Map.of(
+            mate.academy.service.FileReaderService.class,
+            mate.academy.service.impl.FileReaderServiceImpl.class,
+            mate.academy.service.ProductParser.class,
+            mate.academy.service.impl.ProductParserImpl.class,
+            mate.academy.service.ProductService.class,
+            mate.academy.service.impl.ProductServiceImpl.class
+    );
+
+    // ✅ CACHE (singleton-like)
+    private final Map<Class<?>, Object> instances = new HashMap<>();
 
     private Injector() {
-        interfaceImplementationMap.put(
-                mate.academy.service.FileReaderService.class,
-                mate.academy.service.impl.FileReaderServiceImpl.class
-        );
-        interfaceImplementationMap.put(
-                mate.academy.service.ProductParser.class,
-                mate.academy.service.impl.ProductParserImpl.class
-        );
-        interfaceImplementationMap.put(
-                mate.academy.service.ProductService.class,
-                mate.academy.service.impl.ProductServiceImpl.class
-        );
     }
 
     public static Injector getInjector() {
@@ -30,6 +27,10 @@ public class Injector {
     }
 
     public <T> T getInstance(Class<T> interfaceClazz) {
+        if (instances.containsKey(interfaceClazz)) {
+            return (T) instances.get(interfaceClazz);
+        }
+
         Class<?> implementationClass = interfaceImplementationMap.get(interfaceClazz);
 
         if (implementationClass == null) {
@@ -37,7 +38,8 @@ public class Injector {
         }
 
         if (!implementationClass.isAnnotationPresent(Component.class)) {
-            throw new RuntimeException("Class " + implementationClass.getName()
+            throw new RuntimeException("Class "
+                    + implementationClass.getName()
                     + " is not annotated with @Component");
         }
 
@@ -46,17 +48,17 @@ public class Injector {
 
             injectDependencies(instance);
 
+            instances.put(interfaceClazz, instance);
+
             return (T) instance;
-        } catch (Exception e) {
+        } catch (ReflectiveOperationException e) { // ✅ poprawione
             throw new RuntimeException("Can't create instance of "
                     + implementationClass.getName(), e);
         }
     }
 
     private void injectDependencies(Object instance) throws IllegalAccessException {
-        Field[] fields = instance.getClass().getDeclaredFields();
-
-        for (Field field : fields) {
+        for (Field field : instance.getClass().getDeclaredFields()) {
             if (field.isAnnotationPresent(Inject.class)) {
                 Object dependency = getInstance(field.getType());
                 field.setAccessible(true);
