@@ -1,10 +1,9 @@
 package mate.academy.service.impl;
 
-import mate.academy.lib.Component;
-import mate.academy.lib.Inject;
-
 import java.util.List;
 import java.util.stream.Collectors;
+import mate.academy.lib.Component;
+import mate.academy.lib.Inject;
 import mate.academy.model.Product;
 import mate.academy.service.FileReaderService;
 import mate.academy.service.ProductParser;
